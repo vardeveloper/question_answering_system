@@ -1,0 +1,11 @@
+data/
+venv/
+volumes/
+
+__pycache__
+*.zip
+*.log
+
+node_modules/
+logs/
+models/
