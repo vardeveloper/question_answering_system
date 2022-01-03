@@ -1,5 +1,6 @@
 import uvicorn
 import os
+from typing import Optional
 from fastapi import FastAPI, File, UploadFile
 from starlette.middleware.cors import CORSMiddleware
 from milvus_helpers import MilvusHelper
@@ -16,12 +17,10 @@ app = FastAPI()
 origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
-
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-
 )
 
 MODEL = SentenceModel()
@@ -29,52 +28,54 @@ MILVUS_CLI = MilvusHelper()
 MYSQL_CLI = MySQLHelper()
 
 
-@app.post('/qa/load_data')
-async def do_load_api(file: UploadFile = File(...), table_name: str = None):
+@app.post("/qa/load_data")
+async def do_load_api(file: UploadFile = File(...), table_name: Optional[str] = None):
     try:
+        LOGGER.info(f"Table name: {table_name}")
         text = await file.read()
         fname = file.filename
         dirs = "QA_data"
         if not os.path.exists(dirs):
             os.makedirs(dirs)
         fname_path = os.path.join(os.getcwd(), os.path.join(dirs, fname))
-        with open(fname_path, 'wb') as f:
+        with open(fname_path, "wb") as f:
             f.write(text)
     except Exception:
-        return {'status': False, 'msg': 'Failed to load data.'}
+        return {"status": False, "msg": "Failed to load data."}
     try:
         total_num = do_load(table_name, fname_path, MODEL, MILVUS_CLI, MYSQL_CLI)
         LOGGER.info(f"Successfully loaded data, total count: {total_num}")
-        return {'status': True, 'msg': f"Successfully loaded data: {total_num}"}, 200
+        return {"status": True, "msg": f"Successfully loaded data: {total_num}"}, 200
     except Exception as e:
         LOGGER.error(e)
-        return {'status': False, 'msg': e}, 400
+        return {"status": False, "msg": e}, 400
 
 
-@app.get('/qa/search')
-async def do_get_question_api(question: str, table_name: str = None):
+@app.get("/qa/search")
+async def do_get_question_api(question: str, table_name: Optional[str] = None):
     try:
-        questions, _= do_search(table_name, question, MODEL, MILVUS_CLI, MYSQL_CLI)
-        #res = dict(zip(questions, distances))
+        LOGGER.info(f"Table name: {table_name}")
+        questions, _ = do_search(table_name, question, MODEL, MILVUS_CLI, MYSQL_CLI)
+        # res = dict(zip(questions, distances))
         # res = sorted(res.items(), key=lambda item: item[1])
         LOGGER.info("Successfully searched similar images!")
-        return {'status': True, 'msg': questions}, 200
+        return {"status": True, "msg": questions}, 200
     except Exception as e:
         LOGGER.error(e)
-        return {'status': False, 'msg': e}, 400
+        return {"status": False, "msg": e}, 400
 
 
-@app.get('/qa/answer')
+@app.get("/qa/answer")
 async def do_get_answer_api(question: str, table_name: str = None):
     try:
         results = do_get_answer(table_name, question, MYSQL_CLI)
-        return {'status': True, 'msg': results}
+        return {"status": True, "msg": results}
     except Exception as e:
         LOGGER.error(e)
-        return {'status': False, 'msg': e}
+        return {"status": False, "msg": e}
 
 
-@app.post('/qa/count')
+@app.post("/qa/count")
 async def count_images(table_name: str = None):
     # Returns the total number of questions in the system
     try:
@@ -83,19 +84,32 @@ async def count_images(table_name: str = None):
         return num
     except Exception as e:
         LOGGER.error(e)
-        return {'status': False, 'msg': e}, 400
+        return {"status": False, "msg": e}, 400
 
 
-@app.post('/qa/drop')
+@app.post("/qa/drop")
 async def drop_tables(table_name: str = None):
     # Delete the collection of Milvus and MySQL
     try:
         status = do_drop(table_name, MILVUS_CLI, MYSQL_CLI)
         LOGGER.info("Successfully drop tables in Milvus and MySQL!")
-        return {'status': True, 'msg': status}
+        return {"status": True, "msg": status}
     except Exception as e:
         LOGGER.error(e)
-        return {'status': False, 'msg': e}, 400
+        return {"status": False, "msg": e}, 400
 
-if __name__ == '__main__':
-    uvicorn.run(app=app, host='0.0.0.0', port=8000)
+
+@app.post("/qa/info")
+async def do_get_collection(table_name: str = None):
+    # Delete the collection of Milvus and MySQL
+    try:
+        info = MILVUS_CLI.get_info(table_name)
+        LOGGER.info("Successfully get collection in Milvus!")
+        return {"status": True, "msg": info}
+    except Exception as e:
+        LOGGER.error(e)
+        return {"status": False, "msg": e}, 400
+
+
+if __name__ == "__main__":
+    uvicorn.run(app=app, host="0.0.0.0", port=8000)

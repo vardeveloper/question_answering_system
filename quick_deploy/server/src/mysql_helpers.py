@@ -4,7 +4,7 @@ from config import MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PWD, MYSQL_DB
 from logs import LOGGER
 
 
-class MySQLHelper():
+class MySQLHelper:
     """
     Say something about the ExampleCalass...
 
@@ -14,23 +14,38 @@ class MySQLHelper():
     """
 
     def __init__(self):
-        self.conn = pymysql.connect(host=MYSQL_HOST, user=MYSQL_USER, port=MYSQL_PORT, password=MYSQL_PWD,
-                                    database=MYSQL_DB,
-                                    local_infile=True)
+        self.conn = pymysql.connect(
+            host=MYSQL_HOST,
+            user=MYSQL_USER,
+            port=MYSQL_PORT,
+            password=MYSQL_PWD,
+            database=MYSQL_DB,
+            local_infile=True,
+        )
         self.cursor = self.conn.cursor()
 
     def test_connection(self):
         try:
             self.conn.ping()
         except Exception:
-            self.conn = pymysql.connect(host=MYSQL_HOST, user=MYSQL_USER, port=MYSQL_PORT, password=MYSQL_PWD,
-                                    database=MYSQL_DB,local_infile=True)
+            self.conn = pymysql.connect(
+                host=MYSQL_HOST,
+                user=MYSQL_USER,
+                port=MYSQL_PORT,
+                password=MYSQL_PWD,
+                database=MYSQL_DB,
+                local_infile=True,
+            )
             self.cursor = self.conn.cursor()
 
     def create_mysql_table(self, table_name):
         # Create mysql table if not exists
         self.test_connection()
-        sql = "create table if not exists " + table_name + " (milvus_id TEXT, question TEXT, answer TEXT);"
+        sql = (
+            "create table if not exists "
+            + table_name
+            + " (milvus_id TEXT, question TEXT, answer TEXT);"
+        )
         try:
             self.cursor.execute(sql)
             LOGGER.debug(f"MYSQL create table: {table_name} with sql: {sql}")
@@ -41,7 +56,11 @@ class MySQLHelper():
     def load_data_to_mysql(self, table_name, data):
         # Batch insert (Milvus_ids, img_path) to mysql
         self.test_connection()
-        sql = "insert into " + table_name + " (milvus_id,question,answer) values (%s,%s,%s);"
+        sql = (
+            "insert into "
+            + table_name
+            + " (milvus_id,question,answer) values (%s,%s,%s);"
+        )
         try:
             self.cursor.executemany(sql, data)
             self.conn.commit()
@@ -53,8 +72,16 @@ class MySQLHelper():
     def search_by_milvus_ids(self, ids, table_name):
         # Get the img_path according to the milvus ids
         self.test_connection()
-        str_ids = str(ids).replace('[', '').replace(']', '')
-        sql = "select question from " + table_name + " where milvus_id in (" + str_ids + ") order by field (milvus_id," + str_ids + ");"
+        str_ids = str(ids).replace("[", "").replace("]", "")
+        sql = (
+            "select question from "
+            + table_name
+            + " where milvus_id in ("
+            + str_ids
+            + ") order by field (milvus_id,"
+            + str_ids
+            + ");"
+        )
         try:
             self.cursor.execute(sql)
             results = self.cursor.fetchall()
@@ -66,7 +93,9 @@ class MySQLHelper():
             sys.exit(1)
 
     def search_by_question(self, question, table_name):
-        sql = "select answer from " + table_name + " where question = '" + question + "';"
+        sql = (
+            "select answer from " + table_name + " where question = '" + question + "';"
+        )
         try:
             self.cursor.execute(sql)
             results = self.cursor.fetchall()
@@ -90,7 +119,7 @@ class MySQLHelper():
     def delete_all_data(self, table_name):
         # Delete all the data in mysql table
         self.test_connection()
-        sql = 'delete from ' + table_name + ';'
+        sql = "delete from " + table_name + ";"
         try:
             self.cursor.execute(sql)
             self.conn.commit()

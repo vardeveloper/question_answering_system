@@ -19,9 +19,9 @@ class SentenceModel:
         if not os.path.exists(MODEL_PATH):
             os.makedirs(MODEL_PATH)
         if not os.path.exists("./paraphrase-mpnet-base-v2.zip"):
-            url = 'https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/paraphrase-mpnet-base-v2.zip'
+            url = "https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/paraphrase-mpnet-base-v2.zip"
             gdown.download(url)
-        with zipfile.ZipFile('paraphrase-mpnet-base-v2.zip', 'r') as zip_ref:
+        with zipfile.ZipFile("paraphrase-mpnet-base-v2.zip", "r") as zip_ref:
             zip_ref.extractall(MODEL_PATH)
         self.model = SentenceTransformer(MODEL_PATH)
 
